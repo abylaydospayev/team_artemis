@@ -368,12 +368,13 @@ class MainWindow(QMainWindow):
         # save current progress
         self.save_labels()
         reply = QMessageBox.question(self, 'Back to Main', 
-            'Save progress and return to main frame?',
+            'Save progress and return to the web app?',
             QMessageBox.Yes | QMessageBox.No)
         
         if reply == QMessageBox.Yes:
-            self.statusBar().showMessage("Returning to main frame...")
-            # to main frame place holder
+            self.statusBar().showMessage("Closing annotation tool...")
+            # shuts down the pyside
+            self.close()
 
     def add_new_class(self):
         new_class = self.new_class_input.text().strip()

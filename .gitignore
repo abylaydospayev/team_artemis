@@ -1,0 +1,21 @@
+# Environments
+venv/
+.venv/
+env/
+
+# Security / Credentials
+kaggle.json
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# YOLOv8 & Streamlit Data (Prevents uploading massive datasets & models)
+runs/
+temp_dataset/
+*.pt
+datasets/
+
+# OS generated files
+.DS_Store
+Thumbs.db

@@ -220,7 +220,7 @@ def main():
         
         with col1:
             st.subheader("1. Data Source")
-            source_type = st.radio("Select Source", ["Search Kaggle", "Upload Zip"])
+            source_type = st.radio("Select Source", ["Search Kaggle", "Upload Zip", "Draw Custom Dataset"])
             
             if source_type == "Upload Zip":
                 uploaded_zip = st.file_uploader("Upload Dataset (.zip)", type="zip")
@@ -248,6 +248,35 @@ def main():
                                 st.session_state.dataset_ready = True
                     else:
                         st.warning("No results found. (Check your kaggle.json key)")
+            
+            elif source_type == "Draw Custom Dataset":
+                st.markdown("Use the built-in desktop tool to annotate your own images.")
+                
+                # Button to launch your PySide6 app!
+                if st.button(" Launch Annotation Tool"):
+                    import subprocess
+                    import sys
+                    subprocess.Popen([sys.executable, "bbox.py"])
+                    st.toast("Opening Bounding Box Tool...")
+                    
+                st.divider()
+                st.markdown("After generating your `dataset.yaml` in the tool, paste the path to that folder below:")
+                
+                custom_folder = st.text_input("Dataset Folder Path:")
+                
+                if custom_folder and st.button("Load Custom Dataset"):
+                    # Check if the folder exists and contains the yaml
+                    if os.path.exists(custom_folder) and any(f.endswith('.yaml') for f in os.listdir(custom_folder)):
+                        # Copy contents to Streamlit's workspace
+                        data_dir = "temp_dataset"
+                        if os.path.exists(data_dir):
+                            shutil.rmtree(data_dir)
+                        shutil.copytree(custom_folder, data_dir)
+                        
+                        st.success("Custom dataset loaded successfully!")
+                        st.session_state.dataset_ready = True
+                    else:
+                        st.error(" Invalid folder path or missing .yaml file.")
 
         with col2:
             st.subheader("2. Hyperparameters")
