@@ -30,7 +30,7 @@ def search_kaggle_datasets(query):
         api = KaggleApi()
         api.authenticate()
         # Search and return top 10 results sorted by vote 
-        datasets = api.dataset_list(search=query, sort_by='votes', file_type='json')
+        datasets = api.dataset_list(search=query, sort_by='votes')
         
         # FIX: Safely extract attributes in case the Kaggle API changes them again
         results = []
@@ -102,21 +102,43 @@ def train_yolo(epochs, batch_size, model_size, progress_bar, status_text, chart)
         yaml_path = existing_yaml
         st.info(f"Using found config: {yaml_path}")
     else:
-        # If no YAML is found, verify if it even has standard YOLO folders before guessing
-        if not os.path.exists(os.path.join(data_dir, "train")) and not os.path.exists(os.path.join(data_dir, "images")):
-            st.error("🚨 This dataset is not formatted for YOLO Object Detection (missing 'data.yaml' or standard 'train' folders). Please try downloading a dataset explicitly labeled 'YOLO'.")
+        # SMART CHECK: Scan the dataset to find where the images are actually hiding
+        image_folder = None
+        for root, dirs, files in os.walk(data_dir):
+            # Check if this folder contains image files
+            if any(f.endswith(('.jpg', '.jpeg', '.png')) for f in files):
+                image_folder = root
+                break
+                
+        if not image_folder:
+            st.error(" Could not find any images in this dataset. It might be corrupt.")
             return None
             
-        # Generate default YAML if missing but folders exist
+        # Search for 'classes.txt' to get the actual names of the objects
+        class_names = {0: 'target'}
+        for root, dirs, files in os.walk(data_dir):
+            if "classes.txt" in files:
+                with open(os.path.join(root, "classes.txt"), "r") as f:
+                    classes = [line.strip() for line in f.readlines() if line.strip()]
+                    class_names = {i: name for i, name in enumerate(classes)}
+                break
+
+        # Generate a custom YAML mapping to the exact folder we found
+        relative_img_path = os.path.relpath(image_folder, data_dir)
+        # Windows uses backslashes, but YOLO requires forward slashes in the YAML
+        relative_img_path = relative_img_path.replace("\\", "/") 
+        
         yaml_content = {
             'path': data_dir,
-            'train': 'train/images' if os.path.exists(os.path.join(data_dir, "train", "images")) else 'images/train', 
-            'val': 'valid/images' if os.path.exists(os.path.join(data_dir, "valid", "images")) else 'images/val',
-            'names': {0: 'target'}
+            'train': relative_img_path, 
+            'val': relative_img_path, # Use same folder for validation if no split exists
+            'names': class_names
         }
         yaml_path = os.path.join(data_dir, "generated_data.yaml")
         with open(yaml_path, "w") as f:
             yaml.dump(yaml_content, f)
+            
+        st.info(f"Auto-generated config mapping to folder: {relative_img_path}")
 
     # 2. Initialize Model 
     model_map = {"Nano (n)": "yolov8n.pt", "Small (s)": "yolov8s.pt", "Medium (m)": "yolov8m.pt"}
@@ -171,7 +193,7 @@ if os.path.exists("runs"):
     shutil.rmtree('runs')
 
 # --- PAGE CONFIGURATION ---
-st.set_page_config(page_title="CropGuard: Train & Spray", page_icon="", layout="wide")
+st.set_page_config(page_title="CropGuard: Train & Spray", page_icon="g", layout="wide")
 
 # --- CSS STYLING ---
 st.markdown("""
