@@ -22,6 +22,9 @@ if os.path.exists(kaggle_file):
 else:
     pass
 
+# --- OUTPUT DIRECTORIES ---
+ONNX_OUTPUT_DIR = os.path.join("exports", "onnx")
+
 # --- HELPER FUNCTIONS ---
 
 def search_kaggle_datasets(query):
@@ -298,6 +301,16 @@ def main():
             if best_model_path:
                 st.success("Training Complete!")
                 st.balloons()
+                onnx_path = None
+                try:
+                    os.makedirs(ONNX_OUTPUT_DIR, exist_ok=True)
+                    trained_model = YOLO(best_model_path)
+                    exported_path = trained_model.export(format="onnx")
+                    onnx_path = os.path.join(ONNX_OUTPUT_DIR, "custom_model.onnx")
+                    shutil.copy2(exported_path, onnx_path)
+                    st.success(f"ONNX export saved to: {onnx_path}")
+                except Exception as e:
+                    st.warning(f"ONNX export skipped: {e}")
                 with open(best_model_path, "rb") as f:
                     st.download_button(
                         label="⬇ Download Model (.pt)",
@@ -305,6 +318,14 @@ def main():
                         file_name="custom_model.pt",
                         mime="application/octet-stream"
                     )
+                if onnx_path and os.path.exists(onnx_path):
+                    with open(onnx_path, "rb") as f:
+                        st.download_button(
+                            label="Download Model (.onnx)",
+                            data=f.read(),
+                            file_name="custom_model.onnx",
+                            mime="application/octet-stream"
+                        )
 
     elif app_mode == "Run System (Inference)":
         st.title(" Inference Mode")
