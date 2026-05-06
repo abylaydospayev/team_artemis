@@ -23,6 +23,7 @@ else:
     pass
 
 # --- OUTPUT DIRECTORIES ---
+PT_OUTPUT_DIR = os.path.join("exports", "pt")
 ONNX_OUTPUT_DIR = os.path.join("exports", "onnx")
 
 # --- HELPER FUNCTIONS ---
@@ -301,6 +302,14 @@ def main():
             if best_model_path:
                 st.success("Training Complete!")
                 st.balloons()
+                pt_path = best_model_path
+                try:
+                    os.makedirs(PT_OUTPUT_DIR, exist_ok=True)
+                    pt_path = os.path.join(PT_OUTPUT_DIR, "custom_model.pt")
+                    shutil.copy2(best_model_path, pt_path)
+                    st.success(f"PT copy saved to: {pt_path}")
+                except Exception as e:
+                    st.warning(f"PT copy skipped: {e}")
                 onnx_path = None
                 try:
                     os.makedirs(ONNX_OUTPUT_DIR, exist_ok=True)
@@ -311,7 +320,7 @@ def main():
                     st.success(f"ONNX export saved to: {onnx_path}")
                 except Exception as e:
                     st.warning(f"ONNX export skipped: {e}")
-                with open(best_model_path, "rb") as f:
+                with open(pt_path, "rb") as f:
                     st.download_button(
                         label="⬇ Download Model (.pt)",
                         data=f.read(),
